@@ -1,4 +1,6 @@
-from typing import Any, Dict, List, Optional, Set, Tuple
+from collections import defaultdict
+from typing import Dict, Hashable, List, Optional, Set, Tuple
+from functools import cached_property
 
 
 class Node:
@@ -6,7 +8,7 @@ class Node:
     Graph node.
     """
 
-    def __init__(self, obj: Any):
+    def __init__(self, obj: Hashable):
         self.obj = obj
         self.level = -1
 
@@ -26,23 +28,25 @@ class DAG:
     Augmented Directed Acyclic Graph class.
     """
 
-    def __init__(self, vertices: List[Any], edges: List[Tuple[Any, Any]]):
+    def __init__(self, vertices: List[Hashable], edges: List[Tuple[Hashable, Hashable]]):
         # Convert the inputs to node representation
-        vertex_to_node = {vertex: Node(vertex) for vertex in vertices}
-        vertices = [vertex_to_node[v] for v in vertices]
-        edges = [(vertex_to_node[a], vertex_to_node[b]) for (a, b) in edges]
+        self._obj_to_node = {obj: Node(obj) for obj in vertices}
 
-        # Define attributes
+        vertices = [self._obj_to_node[v] for v in vertices]
+        edges = [(self._obj_to_node[a], self._obj_to_node[b]) for (a, b) in edges]
+
+        # Define main attributes
         self._vertices: List[Node] = vertices
         self._edges: List[Tuple[Node, Node]] = edges
         self._adj_list: Dict[Node, List[Node]] = self._generate_adjacency_list()
 
         # Preprocessing
         self._compute_node_levels()
+        self._levels = self._arrange_node_levels()
 
     # Properties
     @property
-    def vertices(self) -> List[Any]:
+    def vertices(self) -> List[Hashable]:
         return [node.obj for node in self._vertices]
 
     @property
@@ -50,12 +54,24 @@ class DAG:
         return len(self._vertices)
 
     @property
-    def edges(self) -> List[Tuple[Any, Any]]:
+    def edges(self) -> List[Tuple[Hashable, Hashable]]:
         return [(a.obj, b.obj) for (a, b) in self._edges]
 
     @property
     def num_edges(self) -> int:
         return len(self._edges)
+
+    @cached_property
+    def height(self) -> int:
+        """
+        Returns the maximum level of all nodes.
+        """
+
+        max_level = 0
+        for vertex in self._vertices:
+            max_level = max(max_level, vertex.level)
+
+        return max_level
 
     # Helper methods
     def _generate_adjacency_list(self) -> Dict[Node, List[Node]]:
@@ -126,7 +142,6 @@ class DAG:
 
         # Process nodes on the stack
         while stack:
-            print(stack)
             # Get the next node to process
             node, parent_level = stack.pop()
 
@@ -142,6 +157,48 @@ class DAG:
         for node in self._vertices:
             if node.level == -1:
                 raise ValueError("There is a cycle in the provided DAG")
+
+    def _arrange_node_levels(self) -> Dict[int, List[Node]]:
+        """
+        Arranges the nodes according to their levels
+
+        :return: dictionary of levels and the nodes at each level
+        """
+
+        levels = defaultdict(list)
+        for vertex in self._vertices:
+            levels[vertex.level].append(vertex)
+
+        return dict(levels)
+
+    # Public methods
+    def get_level(self, obj: Hashable) -> int:
+        """
+        Gets the level of the object in the DAG.
+
+        :param obj: object
+        :raises ValueError: if the object is not in the DAG
+        :return: level of the object
+        """
+
+        if obj not in self._obj_to_node:
+            raise ValueError(f"Object '{obj}' not in DAG.")
+
+        return self._obj_to_node[obj].level
+
+    def get_in_level(self, level: int) -> List[Hashable]:
+        """
+        Gets the items at the specified level.
+
+        :param level: level to get items at
+        :raises ValueError: if the level does not exist
+        :return: items at the level
+        """
+
+        if level not in self._levels:
+            raise ValueError(f"Nothing in level {level}.")
+
+        return [node.obj for node in self._levels[level]]
 
 
 if __name__ == "__main__":
@@ -159,4 +216,5 @@ if __name__ == "__main__":
     # vertices = [1, 2, 3, 4, 5]
     # edges = [(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (1, 5), (2, 5), (3, 5), (4, 5)]
     dag = DAG(vertices, edges)
-    print(dag._vertices)
+    for vertex in vertices:
+        print(vertex, dag.get_level(vertex))
