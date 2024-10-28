@@ -1,3 +1,3 @@
 # Manim-Utils
 
-Utilities for Manim
+Utilities for Manim.
