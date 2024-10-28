@@ -81,6 +81,14 @@ class DAG:
 
         return max_level
 
+    @cached_property
+    def level_sizes(self) -> Dict[int, int]:
+        """
+        Returns a dictionary of the number of nodes with a specified level value.
+        """
+
+        return {level: len(nodes) for level, nodes in self._levels.items()}
+
     # Helper methods
     def _generate_adjacency_list(self) -> Dict[Node, List[Node]]:
         """

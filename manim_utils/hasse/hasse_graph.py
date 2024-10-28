@@ -1,5 +1,5 @@
-import random
-from typing import Any, Hashable, List, Tuple
+from collections import defaultdict
+from typing import Hashable, List, Tuple
 
 import networkx as nx
 import numpy as np
@@ -8,9 +8,6 @@ from manim.typing import Point3D
 from manim.utils.color import WHITE, ManimColor
 
 from manim_utils.hasse.augmented_dag import DAG
-
-# TODO: Remove
-random.seed(42)
 
 
 class HasseGraph(Graph):
@@ -24,10 +21,16 @@ class HasseGraph(Graph):
         edges: List[Tuple[Hashable, Hashable]],
         label_colour: ManimColor = WHITE,
         label_buff: float = 0.25,
+        intra_level_spacing: float = 1.0,
+        inter_level_spacing: float = 1.0,
         **kwargs
     ):
         # Generate the internal DAG data
         self._dag = DAG(vertices, edges)
+
+        # Set internal attributes
+        self._intra_level_spacing = intra_level_spacing
+        self._inter_level_spacing = inter_level_spacing
 
         # Generate the graph
         super().__init__(
@@ -42,17 +45,29 @@ class HasseGraph(Graph):
         )
 
     # Helper methods
-    def _hasse_layout(
-        self, graph: nx.Graph, level_buff: float = 2, *args: Any, **kwargs: Any
-    ) -> dict[Hashable, Point3D]:
+    def _hasse_layout(self, graph: nx.Graph, *args, **kwargs) -> dict[Hashable, Point3D]:
         # TODO: Update layout
 
+        # First get data from the computed DAG
         dag_height = self._dag.height
+        dag_level_sizes = self._dag.level_sizes
 
+        # Then start laying out the nodes properly
+        levels_node_counts = defaultdict(lambda: 1)
         layout_dict = {}
         for i, node in enumerate(graph):
-            layout_dict[node] = np.array(
-                [i - len(graph) / 2 + 2 * random.random(), level_buff * (self._dag.get_level(node) - dag_height / 2), 0]
-            )
-        print(layout_dict)
+            # Get the node's level
+            node_level = self._dag.get_level(node)
+
+            # Determine the node's position
+            x = self._intra_level_spacing * (levels_node_counts[node_level] - dag_level_sizes[node_level] / 2)
+            y = self._inter_level_spacing * (node_level - dag_height / 2)
+
+            # Note it down in the layout dictionary
+            layout_dict[node] = np.array([x, y, 0])
+
+            # Update
+            levels_node_counts[node_level] += 1
+
+        print(layout_dict)  # TODO: Remove
         return layout_dict
