@@ -23,6 +23,7 @@ class HasseGraph(Graph):
         label_buff: float = 0.25,
         intra_level_spacing: float = 1.0,
         inter_level_spacing: float = 1.0,
+        centering: bool = True,
         **kwargs
     ):
         # Generate the internal DAG data
@@ -31,6 +32,7 @@ class HasseGraph(Graph):
         # Set internal attributes
         self._intra_level_spacing = intra_level_spacing
         self._inter_level_spacing = inter_level_spacing
+        self._centering = centering
 
         # Generate the graph
         super().__init__(
@@ -55,7 +57,7 @@ class HasseGraph(Graph):
         # Then start laying out the nodes properly
         levels_node_counts = defaultdict(lambda: 1)
         layout_dict = {}
-        for i, node in enumerate(graph):
+        for node in graph:
             # Get the node's level
             node_level = self._dag.get_level(node)
 
@@ -69,5 +71,22 @@ class HasseGraph(Graph):
             # Update
             levels_node_counts[node_level] += 1
 
+        # TODO: Use Fruchterman-Reingold force-directed algorithm
         print(layout_dict)  # TODO: Remove
+
+        # Adjust to be centred
+        if self._centering:
+            # Get the range of x and y
+            x_range = [np.inf, -np.inf]
+            y_range = [np.inf, -np.inf]
+            for pos in layout_dict.values():
+                x_range = [min(x_range[0], pos[0]), max(x_range[1], pos[0])]
+                y_range = [min(y_range[0], pos[1]), max(y_range[1], pos[1])]
+
+            # Center all the nodes
+            for node in layout_dict:
+                layout_dict[node][0] -= (x_range[0] + x_range[1]) / 2
+                layout_dict[node][1] -= (y_range[0] + y_range[1]) / 2
+
+            print(layout_dict)  # TODO: Remove
         return layout_dict
