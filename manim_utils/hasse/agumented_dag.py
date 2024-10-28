@@ -83,29 +83,56 @@ class DAG:
         return sources
 
     def _compute_node_levels(self):
+        """
+        Computes the levels of all the nodes in a DAG.
+
+        :raises ValueError: if there is a cycle in the graph
+        """
+
         # First find all the source nodes
         sources = self._find_sources()
-
-        # # Mark source nodes as level 0
-        # for node in sources:
-        #     node.level = 0
 
         # Push all the source nodes onto a stack
         stack = [(source, -1) for source in sources]  # First is node, second is parent node's level
 
         # Process nodes on the stack
-        while stack:
+        """
+        A note why `max_iter` is `1/2 * V * (V-1)`.
+        
+        If we indeed have a DAG,
+        - the first node can connect to the (V-1) other nodes;
+        - the second node can connect to the (V-2) other nodes (can't connect to previous node as
+          otherwise we have a cycle);
+        - the third node can connect to the (V-3) other nodes (can't connect to previous nodes as
+          otherwise we have a cycle);
+        - etc.
+        Thus the maximum number of iterations for a true DAG with DFS is (V-1) + (V-2) + ... + 1
+        which is `1/2 * V * (V-1)`.
+        """
+        max_iter = self.num_vertices * (self.num_vertices - 1) // 2
+        iter_count = 0
+        while stack and iter_count < max_iter:
             print(stack)
             # Get the next node to process
             node, parent_level = stack.pop()
 
             # Compute new level for the node
             new_level = max(node.level, parent_level + 1)
-            node.level = new_level  # TODO: Handle cycle detection
+            node.level = new_level
 
             # Add node's children to the stack
             for node in self._adj_list[node.obj]:
                 stack.append((node, new_level))
+
+            iter_count += 1
+
+        # There is a cycle if there are still things to process after `max_iter` iterations, or if some nodes are
+        # missing level information
+        if stack:
+            raise ValueError("There is a cycle in the provided DAG")
+        for node in self._vertices:
+            if node.level == -1:
+                raise ValueError("There is a cycle in the provided DAG")
 
 
 if __name__ == "__main__":
