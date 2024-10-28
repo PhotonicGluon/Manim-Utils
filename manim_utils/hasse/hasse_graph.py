@@ -1,25 +1,45 @@
 import random
-from typing import Any, Hashable, List, Tuple, Union
+from typing import Any, Hashable, List, Tuple
 
 import networkx as nx
 import numpy as np
-from manim.mobject.graph import DiGraph
+from manim.mobject.graph import Graph
 from manim.typing import Point3D
+from manim.utils.color import WHITE, ManimColor
 
 from manim_utils.hasse.augmented_dag import DAG
 
+# TODO: Remove
+random.seed(42)
 
-class HasseGraph(DiGraph):
+
+class HasseGraph(Graph):
     """
     Hasse graph.
     """
 
-    def __init__(self, vertices: List[Hashable], edges: List[Tuple[Hashable, Hashable]], **kwargs):
+    def __init__(
+        self,
+        vertices: List[Hashable],
+        edges: List[Tuple[Hashable, Hashable]],
+        label_colour: ManimColor = WHITE,
+        label_buff: float = 0.25,
+        **kwargs
+    ):
         # Generate the internal DAG data
         self._dag = DAG(vertices, edges)
 
-        # Generate the Digraph
-        super().__init__(vertices, edges, layout=self._hasse_layout, **kwargs)
+        # Generate the graph
+        super().__init__(
+            vertices,
+            edges,
+            layout=self._hasse_layout,
+            labels=True,
+            vertex_config={"fill_opacity": 0.0},
+            edge_config={"buff": label_buff},
+            label_fill_color=label_colour,
+            **kwargs
+        )
 
     # Helper methods
     def _hasse_layout(
