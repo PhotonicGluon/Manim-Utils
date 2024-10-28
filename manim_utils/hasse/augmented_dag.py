@@ -112,7 +112,6 @@ class DAG:
         max_iter = self.num_vertices * (self.num_vertices - 1) // 2
         iter_count = 0
         while stack and iter_count < max_iter:
-            print(stack)
             # Get the next node to process
             node, parent_level = stack.pop()
 
