@@ -1,5 +1,4 @@
-from collections import defaultdict
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 class Node:
@@ -82,6 +81,31 @@ class DAG:
 
         return sources
 
+    def _is_acyclic(self, node: Node, visited: Optional[Set[Node]] = None):
+        """
+        Validates that the subgraph with the provided source node is acyclic.
+
+        :param node: source node of the subgraph
+        :param visited: set of visited nodes, defaults to None
+        :return: whether the subgraph is acyclic or not
+        """
+
+        if not visited:
+            visited = set()
+
+        if node in visited:
+            # Somehow went back to a visited node, so there is a cycle
+            return False
+
+        # Process its children
+        new_visited = visited.union([node])
+        children = self._adj_list[node.obj]
+
+        for child in children:
+            if not self._is_acyclic(child, visited=new_visited):
+                return False
+        return True
+
     def _compute_node_levels(self):
         """
         Computes the levels of all the nodes in a DAG.
@@ -92,26 +116,17 @@ class DAG:
         # First find all the source nodes
         sources = self._find_sources()
 
+        # Detect if there exist cycles
+        for source in sources:
+            if not self._is_acyclic(source):
+                raise ValueError("There is a cycle in the provided DAG")
+
         # Push all the source nodes onto a stack
         stack = [(source, -1) for source in sources]  # First is node, second is parent node's level
 
         # Process nodes on the stack
-        """
-        A note why `max_iter` is `1/2 * V * (V-1)`.
-        
-        If we indeed have a DAG,
-        - the first node can connect to the (V-1) other nodes;
-        - the second node can connect to the (V-2) other nodes (can't connect to previous node as
-          otherwise we have a cycle);
-        - the third node can connect to the (V-3) other nodes (can't connect to previous nodes as
-          otherwise we have a cycle);
-        - etc.
-        Thus the maximum number of iterations for a true DAG with DFS is (V-1) + (V-2) + ... + 1
-        which is `1/2 * V * (V-1)`.
-        """
-        max_iter = self.num_vertices * (self.num_vertices - 1) // 2
-        iter_count = 0
-        while stack and iter_count < max_iter:
+        while stack:
+            print(stack)
             # Get the next node to process
             node, parent_level = stack.pop()
 
@@ -123,12 +138,7 @@ class DAG:
             for node in self._adj_list[node.obj]:
                 stack.append((node, new_level))
 
-            iter_count += 1
-
-        # There is a cycle if there are still things to process after `max_iter` iterations, or if some nodes are
-        # missing level information
-        if stack:
-            raise ValueError("There is a cycle in the provided DAG")
+        # If there are somehow unprocessed nodes, there must be a cycle
         for node in self._vertices:
             if node.level == -1:
                 raise ValueError("There is a cycle in the provided DAG")
@@ -146,5 +156,7 @@ if __name__ == "__main__":
         # (6, 3),  # WARN: (6,3) makes a cycle
         # (5, 2),  # WARN: (5,2) makes cycle and removes a source
     ]
+    # vertices = [1, 2, 3, 4, 5]
+    # edges = [(1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (1, 5), (2, 5), (3, 5), (4, 5)]
     dag = DAG(vertices, edges)
     print(dag._vertices)
