@@ -1,0 +1,16 @@
+{
+    "files.exclude": {
+        "**/.ipynb_checkpoints": true,
+        "**/__pycache__": true,
+        "venv": true
+    },
+    "cSpell.words": [
+        "manim",
+        "mobject",
+        "mobjects"
+    ],
+    "editor.formatOnSave": true,
+    "black-formatter.args": [
+        "--line-length=120"
+    ]
+}
