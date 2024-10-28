@@ -1,6 +1,6 @@
 from collections import defaultdict
-from typing import Dict, Hashable, List, Optional, Set, Tuple
 from functools import cached_property
+from typing import Dict, Hashable, List, Optional, Set, Tuple
 
 
 class Node:
@@ -25,10 +25,18 @@ class Node:
 
 class DAG:
     """
-    Augmented Directed Acyclic Graph class.
+    Augmented Directed Acyclic Graph (DAG) class.
     """
 
     def __init__(self, vertices: List[Hashable], edges: List[Tuple[Hashable, Hashable]]):
+        """
+        Initializes a new augmented DAG.
+
+        Args:
+            vertices: list of vertices.
+            edges: list of edges.
+        """
+
         # Convert the inputs to node representation
         self._obj_to_node = {obj: Node(obj) for obj in vertices}
 
@@ -88,7 +96,8 @@ class DAG:
         """
         Finds all the nodes that are sources (i.e., has in-degree of 0).
 
-        :return: set of node indices
+        Returns:
+            set of node indices.
         """
 
         sources = set(self._vertices.copy())
@@ -97,13 +106,16 @@ class DAG:
 
         return sources
 
-    def _is_acyclic(self, node: Node, visited: Optional[Set[Node]] = None):
+    def _is_acyclic(self, node: Node, visited: Optional[Set[Node]] = None) -> bool:
         """
         Validates that the subgraph with the provided source node is acyclic.
 
-        :param node: source node of the subgraph
-        :param visited: set of visited nodes, defaults to None
-        :return: whether the subgraph is acyclic or not
+        Args:
+            node: source node of the subgraph.
+            visited: set of visited nodes.
+
+        Returns:
+            whether the subgraph is acyclic or not.
         """
 
         if not visited:
@@ -126,7 +138,8 @@ class DAG:
         """
         Computes the levels of all the nodes in a DAG.
 
-        :raises ValueError: if there is a cycle in the graph
+        Raises:
+            ValueError: if there is a cycle in the graph.
         """
 
         # First find all the source nodes
@@ -160,9 +173,10 @@ class DAG:
 
     def _arrange_node_levels(self) -> Dict[int, List[Node]]:
         """
-        Arranges the nodes according to their levels
+        Arranges the nodes according to their level.
 
-        :return: dictionary of levels and the nodes at each level
+        Returns:
+            dictionary of levels and the nodes at each level.
         """
 
         levels = defaultdict(list)
@@ -176,9 +190,14 @@ class DAG:
         """
         Gets the level of the object in the DAG.
 
-        :param obj: object
-        :raises ValueError: if the object is not in the DAG
-        :return: level of the object
+        Args:
+            obj: object.
+
+        Raises:
+            ValueError: if the object is not in the DAG.
+
+        Returns:
+            level of the object.
         """
 
         if obj not in self._obj_to_node:
@@ -190,9 +209,14 @@ class DAG:
         """
         Gets the items at the specified level.
 
-        :param level: level to get items at
-        :raises ValueError: if the level does not exist
-        :return: items at the level
+        Args:
+            level: level to get items at.
+
+        Raises:
+            ValueError: if the level does not exist.
+
+        Returns:
+            list of items at the level.
         """
 
         if level not in self._levels:

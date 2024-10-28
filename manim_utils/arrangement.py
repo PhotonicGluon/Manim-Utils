@@ -9,9 +9,9 @@ def arrange_circular(*mobjects: Mobject, clockwise: bool = False, radius: float 
 
     Args:
         mobjects: Mobjects to arrange.
-        clockwise: Whether the arrangement should be clockwise instead of anticlockwise.
-        radius: The radius of the circle to arrange the objects around.
-        offset: The offset of the arrangement.
+        clockwise: whether the arrangement should be clockwise instead of anticlockwise.
+        radius: the radius of the circle to arrange the objects around.
+        offset: the offset of the arrangement.
     """
 
     num_mobjects = len(mobjects)
