@@ -6,11 +6,14 @@
     },
     "cSpell.words": [
         "centering",
+        "fruchterman",
         "hasse",
         "manim",
         "mobject",
         "mobjects",
-        "networkx"
+        "ndarray",
+        "networkx",
+        "reingold"
     ],
     "editor.formatOnSave": true,
     "black-formatter.args": [
