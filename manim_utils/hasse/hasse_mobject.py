@@ -10,7 +10,7 @@ from manim.utils.color import WHITE, ManimColor
 from manim_utils.hasse.augmented_dag import DAG
 
 
-class HasseGraph(Graph):
+class Hasse(Graph):
     """
     Hasse graph.
     """
