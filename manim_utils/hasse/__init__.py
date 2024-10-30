@@ -1,1 +1,1 @@
-# from .hasse_mobject import HasseGraph
+from .hasse_graph_mobject import HasseGraph

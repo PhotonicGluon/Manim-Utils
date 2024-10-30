@@ -1,32 +1,35 @@
 from collections import defaultdict
 from functools import cached_property
-from typing import Dict, Hashable, Literal
+from typing import Dict, Hashable, List, Literal, Tuple
 
 import networkx as nx
 import numpy as np
 from ordered_set import OrderedSet
 
 
-class DirectedAcyclicGraph(nx.DiGraph):
+class NXDirectedAcyclicGraph(nx.DiGraph):
     """
     Directed Acyclic Graph (DAG) class.
     """
 
-    def __init__(self, incoming_graph_data=None, **attr):
+    def __init__(self, nodes: List[Hashable], edges: List[Tuple[Hashable, Hashable]], **attr):
         """
         Initializes a new directed acyclic graph (DAG).
 
         Args:
-            incoming_graph_data: input graph
-            **attr: additional attributes
+            nodes: list of nodes.
+            edges: list of edges.
 
         Raises:
-            NetworkXError: if the graph is not a DAG.
+            NetworkXError: if the graph is not a directed acyclic graph (DAG).
         """
 
-        # First ensure that we indeed have a DAG
-        super().__init__(incoming_graph_data, **attr)
+        # Add the nodes and edges
+        super().__init__(**attr)
+        self.add_nodes_from(nodes)
+        self.add_edges_from(edges)
 
+        # Ensure that we indeed have a DAG
         if not nx.is_directed_acyclic_graph(self):
             raise nx.NetworkXError("Graph is not a directed acyclic graph (DAG)")
 
@@ -77,9 +80,20 @@ class DirectedAcyclicGraph(nx.DiGraph):
         return node_gens
 
 
-class HasseGraph(DirectedAcyclicGraph):
-    def __init__(self, incoming_graph_data=None, **attr):
-        super().__init__(incoming_graph_data, **attr)
+class NXHasseGraph(NXDirectedAcyclicGraph):
+    def __init__(self, nodes: List[Hashable], edges: List[Tuple[Hashable, Hashable]], **attr):
+        """
+         Initializes a new Hasse graph.
+
+        Args:
+            nodes: list of nodes.
+            edges: list of edges.
+
+        Raises:
+            NetworkXError: if the graph is not a directed acyclic graph (DAG).
+        """
+
+        super().__init__(nodes, edges, **attr)
 
     # Helper methods
     def _hasse_layout(
