@@ -129,7 +129,13 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
                 transitive_closure.add_edge(u, v)
 
     def _hasse_layout(
-        self, intra_level_spacing: float = 0.25, inter_level_spacing: float = 1.0, center: bool = True
+        self,
+        x_iterations: int = 25,
+        y_iterations: int = 10,
+        rounds: int = 5,
+        intra_level_spacing: float = 0.05,
+        inter_level_spacing: float = 0.1,
+        center: bool = True,
     ) -> dict[Hashable, np.ndarray]:
         # TODO: Add docs
 
@@ -155,7 +161,14 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
             pos[i] = x, y
 
         # Use a modified Fruchterman-Reingold force-directed algorithm to nicely arrange nodes along each level
-        pos = self._fruchterman_reingold(nx.to_numpy_array(self, weight="weight"), pos)
+        adjacency_matrix = nx.to_numpy_array(self, weight="weight")
+        for _ in range(rounds):
+            pos = self._fruchterman_reingold(
+                adjacency_matrix, pos, freeze="y", iterations=x_iterations, min_dist=intra_level_spacing
+            )
+            pos = self._fruchterman_reingold(
+                adjacency_matrix, pos, freeze="x", iterations=y_iterations, min_dist=inter_level_spacing
+            )
 
         # Adjust to be centred
         if center:
@@ -177,6 +190,7 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
         temperature: float = 0.1,
         freeze: Literal["x", "y"] = "y",
         iterations: int = 50,
+        improvement_tolerance: float = 1e-5,
     ):
         # TODO: Add docs
         # See https://networkx.org/documentation/stable/_modules/networkx/drawing/layout.html#spring_layout
@@ -198,6 +212,8 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
 
         # Perform Fruchterman-Reingold (fast)
         delta = np.zeros((pos.shape[0], pos.shape[0], pos.shape[1]), dtype=A.dtype)
+        prev_delta_pos = np.zeros(pos.shape)
+
         for i in range(iterations):
             # Matrix of difference between points
             delta = pos[:, np.newaxis, :] - pos[np.newaxis, :, :]
@@ -228,4 +244,12 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
 
             # Cool temperature
             t -= dt
+
+            # If the change in delta is too small, terminate early
+            non_freeze_index = 0 if freeze_index == 1 else 1
+            delta_delta_pos = delta_pos - prev_delta_pos
+            average_delta_delta_pos = np.average(delta_delta_pos[:, non_freeze_index])
+            if abs(average_delta_delta_pos) < improvement_tolerance:
+                break
+            prev_delta_pos = delta_pos
         return pos
