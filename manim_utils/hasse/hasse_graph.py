@@ -128,13 +128,35 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
             else:
                 transitive_closure.add_edge(u, v)
 
+    def _get_best_generation_ordering(
+        self, pos: np.ndarray, iterations: int = 250, seed: int = 8192
+    ) -> Dict[int, List[Hashable]]:
+        # First convert the DAG into a regular graph
+        graph = nx.Graph(self)
+
+        # Use spring layout (i.e., Fruchterman-Reingold) to get a good node positioning
+        positions = nx.spring_layout(graph, pos=dict(zip(self, pos)), iterations=iterations, seed=seed)
+
+        # Arrange the given positions in a list
+        positions = [(node, pos) for node, pos in positions.items()]
+
+        # Sort by x coordinate
+        positions.sort(key=lambda t: t[1][0])
+
+        # Now we can order each generation properly
+        best_ordering = defaultdict(list)
+        for node, _ in positions:
+            best_ordering[self.node_generations[node]].append(node)
+
+        return dict(best_ordering)
+
     def _hasse_layout(
         self,
-        x_iterations: int = 25,
-        y_iterations: int = 10,
-        rounds: int = 5,
-        intra_level_spacing: float = 0.05,
-        inter_level_spacing: float = 0.1,
+        perform_correction: bool = True,
+        iterations: int = 250,
+        seed: int = 8192,
+        intra_level_spacing: float = 0.05,  # TODO: Rename to `horizontal_spacing`
+        inter_level_spacing: float = 0.1,  # TODO: Rename to `vertical_spacing`
         center: bool = True,
     ) -> dict[Hashable, np.ndarray]:
         # TODO: Add docs
@@ -143,32 +165,33 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
         num_generations = len(self.generations)
         num_nodes = len(self)
 
-        # Then start laying out the nodes properly
+        if perform_correction:
+            # Determine the nodes' initial positions
+            pos = np.empty((num_nodes, 2))
+            for i, node in enumerate(self):
+                gen = self.node_generations[node]
+                node_index = self.generations[gen].index(node)
+
+                # Determine the node's initial position
+                x = intra_level_spacing * ((node_index + 1) - self.generation_sizes[gen] / 2)
+                y = inter_level_spacing * ((gen + 1) - num_generations / 2)
+                pos[i] = x, y
+
+            # Now we can get the best ordering of the nodes in each generation
+            best_ordering = self._get_best_generation_ordering(pos, iterations=iterations, seed=seed)
+        else:
+            best_ordering = self.generations
+
+        # Now position the nodes in the best order
         pos = np.empty((num_nodes, 2))
-        # rand = np.random.RandomState(8192)  # TODO: Change
         for i, node in enumerate(self):
             gen = self.node_generations[node]
-            node_index = self.generations[gen].index(node)
+            node_index = best_ordering[gen].index(node)
 
-            # Determine the node's position
+            # Determine the node's final position
             x = intra_level_spacing * ((node_index + 1) - self.generation_sizes[gen] / 2)
-            # x += 0.9 * rand.rand() + 0.1  # Add randomness in the uniform interval [0.1, 1.0)
-            # TODO: Enforce that all nodes that came before indeed come before
-
             y = inter_level_spacing * ((gen + 1) - num_generations / 2)
-
-            # Note it down in the layout dictionary
             pos[i] = x, y
-
-        # Use a modified Fruchterman-Reingold force-directed algorithm to nicely arrange nodes along each level
-        adjacency_matrix = nx.to_numpy_array(self, weight="weight")
-        for _ in range(rounds):
-            pos = self._fruchterman_reingold(
-                adjacency_matrix, pos, freeze="y", iterations=x_iterations, min_dist=intra_level_spacing
-            )
-            pos = self._fruchterman_reingold(
-                adjacency_matrix, pos, freeze="x", iterations=y_iterations, min_dist=inter_level_spacing
-            )
 
         # Adjust to be centred
         if center:
@@ -181,75 +204,3 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
 
         # Generate final layout dictionary
         return dict(zip(self, pos))
-
-    @staticmethod
-    def _fruchterman_reingold(
-        A: np.ndarray,
-        pos: np.ndarray,
-        min_dist: float = 0.01,
-        temperature: float = 0.1,
-        freeze: Literal["x", "y"] = "y",
-        iterations: int = 50,
-        improvement_tolerance: float = 1e-5,
-    ):
-        # TODO: Add docs
-        # See https://networkx.org/documentation/stable/_modules/networkx/drawing/layout.html#spring_layout
-
-        # Get the number of nodes from our adjacency matrix
-        num_nodes, _ = A.shape
-
-        # Make sure positions are of same type as matrix
-        pos = pos.astype(A.dtype)
-
-        # Optimal distance between nodes
-        optimal_dist = np.sqrt(1.0 / num_nodes)
-
-        # Calculate initial temperature based on domain size
-        t = max(max(pos.T[0]) - min(pos.T[0]), max(pos.T[1]) - min(pos.T[1])) * temperature
-
-        # Simple cooling scheme: linearly step down by `dt` on each iteration so last iteration is size `dt`
-        dt = t / (iterations + 1)
-
-        # Perform Fruchterman-Reingold (fast)
-        delta = np.zeros((pos.shape[0], pos.shape[0], pos.shape[1]), dtype=A.dtype)
-        prev_delta_pos = np.zeros(pos.shape)
-
-        for i in range(iterations):
-            # Matrix of difference between points
-            delta = pos[:, np.newaxis, :] - pos[np.newaxis, :, :]
-
-            # Distance between points
-            distance = np.linalg.norm(delta, axis=-1)
-            np.clip(distance, min_dist, None, out=distance)  # Enforce minimum distance
-
-            # Displacement "force"
-            displacement = np.einsum(
-                "ijk,ij->ik", delta, (optimal_dist * optimal_dist / distance**2 - A * distance / optimal_dist)
-            )
-
-            # Calculate initial delta for positions
-            length = np.linalg.norm(displacement, axis=-1)
-            length = np.where(length < min_dist, temperature, length)
-            delta_pos = np.einsum("ij,i->ij", displacement, t / length)
-
-            # If freezing specified, freeze x or y
-            if freeze == "x":
-                freeze_index = 0
-            else:
-                freeze_index = 1
-            delta_pos[:, freeze_index] = 0
-
-            # Adjust positions
-            pos += delta_pos
-
-            # Cool temperature
-            t -= dt
-
-            # If the change in delta is too small, terminate early
-            non_freeze_index = 0 if freeze_index == 1 else 1
-            delta_delta_pos = delta_pos - prev_delta_pos
-            average_delta_delta_pos = np.average(delta_delta_pos[:, non_freeze_index])
-            if abs(average_delta_delta_pos) < improvement_tolerance:
-                break
-            prev_delta_pos = delta_pos
-        return pos
