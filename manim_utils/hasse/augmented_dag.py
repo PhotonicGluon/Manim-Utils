@@ -1,6 +1,8 @@
 from collections import defaultdict
 from functools import cached_property
-from typing import Dict, Hashable, List, Optional, Set, Tuple
+from typing import Any, Dict, Hashable, List, Optional, Set, Tuple
+
+from ordered_set import OrderedSet
 
 
 class Node:
@@ -13,13 +15,18 @@ class Node:
         self.level = -1
 
     # Magic methods
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Node({self.obj}, {self.level})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Node({self.obj})"
 
-    def __hash__(self):
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Node):
+            return False
+        return self.obj == other.obj
+
+    def __hash__(self) -> int:
         return hash(self.obj)
 
 
@@ -114,7 +121,7 @@ class DAG:
 
         return sources
 
-    def _is_acyclic(self, node: Node, visited: Optional[Set[Node]] = None) -> bool:
+    def _find_cycle(self, node: Node, visited: Optional[OrderedSet[Node]] = None) -> Optional[List[Node]]:
         """
         Validates that the subgraph with the provided source node is acyclic.
 
@@ -123,24 +130,44 @@ class DAG:
             visited: set of visited nodes.
 
         Returns:
-            whether the subgraph is acyclic or not.
+            a list of nodes forming a cycle. Is None if no cycle exists
         """
 
         if not visited:
-            visited = set()
+            visited = OrderedSet()
 
-        if node in visited:
-            # Somehow went back to a visited node, so there is a cycle
-            return False
+        if node in visited:  # Somehow went back to a visited node, so there is a cycle
+            # Generate the cycle list
+            cycle = []
+            add_to_cycle = False
+            for visited_node in visited:
+                if visited_node == node:
+                    add_to_cycle = True
+                if add_to_cycle:
+                    cycle.append(visited_node)
+            return cycle
 
         # Process its children
         new_visited = visited.union([node])
         children = self._adj_list[node.obj]
 
         for child in children:
-            if not self._is_acyclic(child, visited=new_visited):
-                return False
-        return True
+            cycle = self._find_cycle(child, visited=new_visited)
+            if cycle:
+                return cycle
+        return None
+
+    @staticmethod
+    def _raise_cycle(cycle: List[Node]):
+        """
+        Raises a ValueError indicating that a cycle exists in the provided DAG.
+
+        Args:
+            cycle: list of Node objects that form a cycle in the DAG.
+        """
+
+        cycle = [node.obj for node in cycle] + [cycle[0].obj]
+        raise ValueError(f"There is a cycle in the provided DAG ({' -> '.join([str(x) for x in cycle])})")
 
     def _compute_node_levels(self):
         """
@@ -150,13 +177,14 @@ class DAG:
             ValueError: if there is a cycle in the graph.
         """
 
-        # First find all the source nodes
-        sources = self._find_sources()
-
         # Detect if there exist cycles
-        for source in sources:
-            if not self._is_acyclic(source):
-                raise ValueError("There is a cycle in the provided DAG")
+        for node in self._vertices:
+            cycle = self._find_cycle(node)
+            if cycle:
+                self._raise_cycle(cycle)
+
+        # Find all the source nodes
+        sources = self._find_sources()
 
         # Push all the source nodes onto a stack
         stack = [(source, -1) for source in sources]  # First is node, second is parent node's level
@@ -173,11 +201,6 @@ class DAG:
             # Add node's children to the stack
             for node in self._adj_list[node.obj]:
                 stack.append((node, new_level))
-
-        # If there are somehow unprocessed nodes, there must be a cycle
-        for node in self._vertices:
-            if node.level == -1:
-                raise ValueError("There is a cycle in the provided DAG")
 
     def _arrange_node_levels(self) -> Dict[int, List[Node]]:
         """
