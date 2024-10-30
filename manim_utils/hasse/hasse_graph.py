@@ -1,7 +1,7 @@
 import warnings
 from collections import defaultdict
 from functools import cached_property
-from typing import Dict, Hashable, List, Literal, Tuple
+from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
 import numpy as np
@@ -131,6 +131,20 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
     def _get_best_generation_ordering(
         self, pos: np.ndarray, iterations: int = 250, seed: int = 8192
     ) -> Dict[int, List[Hashable]]:
+        """
+        Given a set of positions, use spring layout to find the best possible generation ordering
+        for the graph.
+
+        Args:
+            pos: The positions of the nodes in the graph.
+            iterations: The number of iterations to use in the spring layout algorithm.
+            seed: The seed value to use in the spring layout algorithm.
+
+        Returns:
+            The best possible generation ordering for the graph, as a dictionary mapping generation
+            number to a list of nodes in that generation.
+        """
+
         # First convert the DAG into a regular graph
         graph = nx.Graph(self)
 
@@ -155,11 +169,26 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
         perform_correction: bool = True,
         iterations: int = 250,
         seed: int = 8192,
-        intra_level_spacing: float = 0.05,  # TODO: Rename to `horizontal_spacing`
-        inter_level_spacing: float = 0.1,  # TODO: Rename to `vertical_spacing`
+        horizontal_spacing: float = 0.05,
+        vertical_spacing: float = 0.1,
         center: bool = True,
-    ) -> dict[Hashable, np.ndarray]:
-        # TODO: Add docs
+    ) -> Dict[Hashable, np.ndarray]:
+        """
+        Computes the best possible layout of the graph in 2D space by first running spring layout
+        on the graph, then ordering the nodes in each generation such that the crossings are
+        minimized.
+
+        Args:
+            perform_correction: Whether to perform the correction step.
+            iterations: The number of iterations to use in the spring layout algorithm.
+            seed: The seed value to use in the spring layout algorithm.
+            horizontal_spacing: The amount of horizontal space between each node.
+            vertical_spacing: The amount of vertical space between each generation.
+            center: Whether the final layout should be centred at the origin.
+
+        Returns:
+            A dictionary mapping each node to its final position in 2D space.
+        """
 
         # First get data from the computed DAG
         num_generations = len(self.generations)
@@ -173,8 +202,8 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
                 node_index = self.generations[gen].index(node)
 
                 # Determine the node's initial position
-                x = intra_level_spacing * ((node_index + 1) - self.generation_sizes[gen] / 2)
-                y = inter_level_spacing * ((gen + 1) - num_generations / 2)
+                x = horizontal_spacing * ((node_index + 1) - self.generation_sizes[gen] / 2)
+                y = vertical_spacing * ((gen + 1) - num_generations / 2)
                 pos[i] = x, y
 
             # Now we can get the best ordering of the nodes in each generation
@@ -189,8 +218,8 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
             node_index = best_ordering[gen].index(node)
 
             # Determine the node's final position
-            x = intra_level_spacing * ((node_index + 1) - self.generation_sizes[gen] / 2)
-            y = inter_level_spacing * ((gen + 1) - num_generations / 2)
+            x = horizontal_spacing * ((node_index + 1) - self.generation_sizes[gen] / 2)
+            y = vertical_spacing * ((gen + 1) - num_generations / 2)
             pos[i] = x, y
 
         # Adjust to be centred
