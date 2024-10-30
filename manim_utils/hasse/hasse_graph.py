@@ -1,3 +1,4 @@
+import warnings
 from collections import defaultdict
 from functools import cached_property
 from typing import Dict, Hashable, List, Literal, Tuple
@@ -93,9 +94,40 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
             NetworkXError: if the graph is not a directed acyclic graph (DAG).
         """
 
+        # First initialize it as a DAG
         super().__init__(nodes, edges, **attr)
 
+        # Remove any edges that are implied by transitivity
+        self._trim_transitive_edges()
+
     # Helper methods
+    def _trim_transitive_edges(self):
+        """
+        Trim any edges that are implied by transitivity in the graph.
+
+        This ensures that the graph is a Hasse diagram, which is a directed acyclic graph (DAG)
+        that has no "redundant" edges: if there is a path from u to v, then there is no edge directly
+        from u to v.
+
+        The algorithm works by first computing the transitive closure of the graph, and then
+        removing any edge (u, v) if there is still a path from u to v in the transitive closure.
+        """
+
+        # Get the transitive closure of the graph
+        transitive_closure: nx.DiGraph = nx.transitive_closure(nx.DiGraph(self))
+
+        # Remove any edge (u, v) that still allows a path from u to v within the transitive closure
+        edges = list(self.edges)  # This will change!
+        for u, v in edges:
+            # Check if path still exists
+            transitive_closure.remove_edge(u, v)
+            if nx.has_path(transitive_closure, u, v):
+                warning = f"Provided Hasse diagram has transitive edge ({u}, {v}). Removing."
+                warnings.warn(warning)
+                self.remove_edge(u, v)
+            else:
+                transitive_closure.add_edge(u, v)
+
     def _hasse_layout(
         self, intra_level_spacing: float = 0.25, inter_level_spacing: float = 1.0, center: bool = True
     ) -> dict[Hashable, np.ndarray]:
