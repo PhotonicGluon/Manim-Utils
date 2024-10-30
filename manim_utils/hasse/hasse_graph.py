@@ -169,8 +169,8 @@ class NXHasseGraph(NXDirectedAcyclicGraph):
         perform_correction: bool = True,
         iterations: int = 250,
         seed: int = 8192,
-        horizontal_spacing: float = 0.05,
-        vertical_spacing: float = 0.1,
+        horizontal_spacing: float = 0.5,
+        vertical_spacing: float = 1,
         center: bool = True,
     ) -> Dict[Hashable, np.ndarray]:
         """

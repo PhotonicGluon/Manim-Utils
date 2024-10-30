@@ -18,7 +18,7 @@ class HasseGraph(Graph):
         vertices: List[Hashable],
         edges: List[Tuple[Hashable, Hashable]],
         label_colour: ManimColor = WHITE,
-        label_buff: float = 0.25,
+        label_buff: float = 0.3,
         **kwargs
     ):
         # Generate the NetworkX hasse graph
@@ -37,12 +37,12 @@ class HasseGraph(Graph):
         )
 
     # Helper methods
-    def _layout(self, graph: nx.Graph, scale: float = 2.0, **kwargs):
+    def _layout(self, graph: nx.Graph, scale: float = 2.0, scale_x: float = 2.0, scale_y: float = 0.75, **kwargs):
         # Generate the base layout
         layout_dict = self._hasse_graph._hasse_layout(**kwargs)
 
         # Convert all positions to 3D, and scale appropriately
         for node, pos in layout_dict.items():
-            layout_dict[node] = scale * np.array([*pos, 0.0])
+            layout_dict[node] = scale * np.array([scale_x * pos[0], scale_y * pos[1], 0.0])
 
         return layout_dict
