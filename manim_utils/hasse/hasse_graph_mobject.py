@@ -25,10 +25,10 @@ class HasseGraph(Graph):
         self._hasse_graph = NXHasseGraph(vertices, edges)
 
         # Update vertex and edge config
-        vertex_config = kwargs.get("vertex_config", {})
+        vertex_config = kwargs.pop("vertex_config", {})
         vertex_config["fill_opacity"] = 0.0
 
-        edge_config = kwargs.get("edge_config", {})
+        edge_config = kwargs.pop("edge_config", {})
         edge_config["buff"] = label_buff
 
         # Generate the graph
