@@ -24,14 +24,21 @@ class HasseGraph(Graph):
         # Generate the NetworkX hasse graph
         self._hasse_graph = NXHasseGraph(vertices, edges)
 
+        # Update vertex and edge config
+        vertex_config = kwargs.get("vertex_config", {})
+        vertex_config["fill_opacity"] = 0.0
+
+        edge_config = kwargs.get("edge_config", {})
+        edge_config["buff"] = label_buff
+
         # Generate the graph
         super().__init__(
             list(self._hasse_graph.nodes),
             list(self._hasse_graph.edges),
             layout=self._layout,
             labels=True,
-            vertex_config={"fill_opacity": 0.0},
-            edge_config={"buff": label_buff},
+            vertex_config=vertex_config,
+            edge_config=edge_config,
             label_fill_color=label_colour,
             **kwargs
         )
