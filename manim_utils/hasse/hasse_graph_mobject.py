@@ -24,6 +24,21 @@ class HasseGraph(Graph):
         seed: int = 8192,
         **kwargs
     ):
+        """
+        Initializes a HasseGraph object.
+
+        Args:
+            vertices: List of vertices in the graph.
+            edges: List of edges, where each edge is a tuple of vertices.
+            label_colour: Color of the labels on the graph.
+            label_buff: Buffer distance for the labels.
+            perform_correction: Whether to perform layout correction.
+            iterations: Number of iterations for the spring layout algorithm. Only used if
+                `perform_correction` is True.
+            seed: Seed value for the layout algorithm. Only used if `perform_correction` is True.
+            **kwargs: Additional keyword arguments for the base Graph class.
+        """
+
         # Generate the NetworkX hasse graph
         self._hasse_graph = NXHasseGraph(vertices, edges)
 
