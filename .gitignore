@@ -160,5 +160,7 @@ cython_debug/
 #.idea/
 
 # Others
+.Trash-1000
+
 Experiments/*
 media/*
