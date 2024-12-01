@@ -84,7 +84,7 @@ class NXDirectedAcyclicGraph(nx.DiGraph):
 class NXHasseGraph(NXDirectedAcyclicGraph):
     def __init__(self, nodes: List[Hashable], edges: List[Tuple[Hashable, Hashable]], **attr):
         """
-         Initializes a new Hasse graph.
+        Initializes a new Hasse graph.
 
         Args:
             nodes: list of nodes.

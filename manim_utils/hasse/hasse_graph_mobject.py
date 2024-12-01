@@ -19,17 +19,25 @@ class HasseGraph(Graph):
         edges: List[Tuple[Hashable, Hashable]],
         label_colour: ManimColor = WHITE,
         label_buff: float = 0.3,
+        perform_correction: bool = True,
+        iterations: int = 250,
+        seed: int = 8192,
         **kwargs
     ):
         # Generate the NetworkX hasse graph
         self._hasse_graph = NXHasseGraph(vertices, edges)
 
-        # Update vertex and edge config
+        # Update configs
         vertex_config = kwargs.pop("vertex_config", {})
         vertex_config["fill_opacity"] = 0.0
 
         edge_config = kwargs.pop("edge_config", {})
         edge_config["buff"] = label_buff
+
+        layout_config = kwargs.pop("layout_config", {})
+        layout_config["perform_correction"] = perform_correction
+        layout_config["iterations"] = iterations
+        layout_config["seed"] = seed
 
         # Generate the graph
         super().__init__(
@@ -40,6 +48,7 @@ class HasseGraph(Graph):
             vertex_config=vertex_config,
             edge_config=edge_config,
             label_fill_color=label_colour,
+            layout_config=layout_config,
             **kwargs
         )
 
