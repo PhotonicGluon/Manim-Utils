@@ -22,4 +22,7 @@
         "--line-length=120"
     ],
     "autoDocstring.docstringFormat": "google-notypes",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
 }
