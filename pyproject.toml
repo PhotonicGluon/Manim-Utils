@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "manim-utils"
-version = "0.1.0.dev5"
+version = "0.1.0.dev6"
 description = "Utilities for Manim."
 authors = ["PhotonicGluon <25820201+PhotonicGluon@users.noreply.github.com>"]
 readme = "README.md"
