@@ -2,13 +2,14 @@ from typing import Hashable, List, Tuple
 
 import networkx as nx
 import numpy as np
-from manim.mobject.graph import Graph
+
 from manim.utils.color import WHITE, ManimColor
 
+from manim_utils.graph.movable_graph import MovableGraph
 from manim_utils.hasse.hasse_graph import NXHasseGraph
 
 
-class HasseGraph(Graph):
+class HasseGraph(MovableGraph):
     """
     Hasse graph.
     """
