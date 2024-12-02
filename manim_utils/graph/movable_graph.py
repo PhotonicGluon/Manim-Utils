@@ -1,13 +1,40 @@
-from typing import Hashable, Union
+from typing import Hashable, Literal, Union
 
 import numpy as np
 from manim.constants import ORIGIN
+from manim.mobject.geometry.line import Line
 from manim.mobject.graph import Graph
 from manim.mobject.mobject import Mobject
-from manim.typing import Vector3D, Point3D
+from manim.typing import Point3D, Vector3D
 
 
 class MovableGraph(Graph):
+    # Helper methods
+    def _shift_edge_start(self, edge: Line, *vectors: Vector3D):
+        """
+        Shifts the start of the edge by the vectors.
+        """
+
+        start, end = edge.get_start_and_end()
+
+        for vector in vectors:
+            start += vector
+
+        edge.put_start_and_end_on(start, end)
+
+    def _shift_edge_end(self, edge: Line, *vectors: Vector3D):
+        """
+        Shifts the end of the edge by the vectors.
+        """
+
+        start, end = edge.get_start_and_end()
+
+        for vector in vectors:
+            end += vector
+
+        edge.put_start_and_end_on(start, end)
+
+    # Public methods
     def move_vertex(
         self,
         vertex: Hashable,
@@ -54,18 +81,33 @@ class MovableGraph(Graph):
         # Find all edges that are connected to this vertex
         in_edges = set(line for edge, line in self.edges.items() if edge[0] == vertex)
         out_edges = set(line for edge, line in self.edges.items() if edge[1] == vertex)
-        edges = in_edges.union(out_edges)
 
         # Shift all edges that are connected to this vertex
-        for edge in edges:
-            start, end = edge.get_start_and_end()
+        for edge in in_edges:
+            self._shift_edge_start(edge, *vectors)
 
-            if edge in in_edges:
-                for vector in vectors:
-                    start += vector
+        for edge in out_edges:
+            self._shift_edge_end(edge, *vectors)
 
-            if edge in out_edges:
-                for vector in vectors:
-                    end += vector
+    def shift_edge(self, start: Hashable, end: Hashable, *vectors: Vector3D, shift: Literal["start", "end"] = "end"):
+        """
+        Shifts the start or end of the requested edge.
 
-            edge.put_start_and_end_on(start, end)
+        Args:
+            start: Start of the edge.
+            end: End of the edge.
+            *vectors: The vectors to shift the edge's start or end by.
+            shift: Whether to shift the edge's start or end.
+        """
+
+        # Find the edge
+        try:
+            edge = self.edges[(start, end)]
+        except KeyError:
+            raise ValueError(f"No edge from {start} to {end}")
+
+        # Shift the edge
+        if shift == "start":
+            self._shift_edge_start(edge, *vectors)
+        else:
+            self._shift_edge_end(edge, *vectors)
