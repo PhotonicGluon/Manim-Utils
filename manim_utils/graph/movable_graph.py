@@ -10,45 +10,24 @@ from manim.typing import Point3D, Vector3D
 
 class MovableGraph(Graph):
     # Helper methods
-    def _adjust_final_point(self, point: Point3D, other: Point3D, buff: float) -> Point3D:
-        vector = other - point
-        adjustment = vector / np.linalg.norm(vector) * buff
-        return point + adjustment
-
-    def _shift_edge_start(
-        self, edge: Line, buff: float, *vectors: Vector3D, positioning: Literal["abs", "rel"] = "abs"
-    ):
+    def _shift_edge_start(self, edge: Line, *vectors: Vector3D):
         """
         Shifts the start of the edge by the vectors.
         """
 
         start, end = edge.get_start_and_end()
-        if positioning == "abs":
-            for vector in vectors:
-                start += vector
-        else:
-            start = self._adjust_final_point(start, end, -buff)  # Recover original center
-            for vector in vectors:
-                start += vector
-            start = self._adjust_final_point(start, end, buff)  # Move edge back
-
+        for vector in vectors:
+            start += vector
         edge.put_start_and_end_on(start, end)
 
-    def _shift_edge_end(self, edge: Line, buff: float, *vectors: Vector3D, positioning: Literal["abs", "rel"] = "abs"):
+    def _shift_edge_end(self, edge: Line, *vectors: Vector3D):
         """
         Shifts the end of the edge by the vectors.
         """
 
         start, end = edge.get_start_and_end()
-        if positioning == "abs":
-            for vector in vectors:
-                end += vector
-        else:
-            end = self._adjust_final_point(end, start, -buff)  # Recover original center
-            for vector in vectors:
-                end += vector
-            end = self._adjust_final_point(end, start, buff)  # Move edge back
-
+        for vector in vectors:
+            end += vector
         edge.put_start_and_end_on(start, end)
 
     # Public methods
@@ -93,34 +72,25 @@ class MovableGraph(Graph):
         """
 
         # First shift the vertex itself
-        print("OLD CENTER", self[vertex].get_center())
-        print("SHIFT", vectors)
         self[vertex].shift(*vectors)
-        print("NEW CENTER", self[vertex].get_center())
-
-        # Generate the resultant vector
-        resultant_vector = np.zeros((3,))
-        for vector in vectors:
-            resultant_vector += vector
-        print("RESVEC", resultant_vector)
 
         # Find all edges that are connected to this vertex
         out_edges = {edge: line for edge, line in self.edges.items() if edge[0] == vertex}
         in_edges = {edge: line for edge, line in self.edges.items() if edge[1] == vertex}
 
-        # Shift all edges that are connected to this vertex
-        for (start, end), edge in out_edges.items():
-            self._shift_edge_start(
-                edge, self._edge_config.get((start, end), {}).get("buff", 0), resultant_vector, positioning="rel"
-            )
+        # Redraw the edges
+        my_center = self[vertex].get_center()
+        for edge, line in out_edges.items():
+            other_center = self[edge[1]].get_center()
+            vector = other_center - my_center
+            adjustment = vector / np.linalg.norm(vector) * self._edge_config[edge].get("buff", 0)
+            line.put_start_and_end_on(my_center + adjustment, other_center - adjustment)
 
-        for (
-            (start, end),
-            edge,
-        ) in in_edges.items():
-            self._shift_edge_end(
-                edge, self._edge_config.get((start, end), {}).get("buff", 0), resultant_vector, positioning="rel"
-            )
+        for edge, line in in_edges.items():
+            other_center = self[edge[0]].get_center()
+            vector = my_center - other_center
+            adjustment = vector / np.linalg.norm(vector) * self._edge_config[edge].get("buff", 0)
+            line.put_start_and_end_on(other_center + adjustment, my_center - adjustment)
 
     def move_edge(
         self,
