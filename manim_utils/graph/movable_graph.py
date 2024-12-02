@@ -89,6 +89,41 @@ class MovableGraph(Graph):
         for edge in out_edges:
             self._shift_edge_end(edge, *vectors)
 
+    def move_edge(
+        self,
+        start: Hashable,
+        end: Hashable,
+        point_or_mobject: Union[Point3D, Mobject],
+        shift: Literal["start", "end"] = "end",
+        aligned_edge: Vector3D = ORIGIN,
+        coor_mask: Vector3D = np.array([1, 1, 1]),
+    ):
+        """
+        Move edge to certain Point3D.
+
+        Args:
+            start: Start of the edge.
+            end: End of the edge.
+            point_or_mobject: A point or a mobject that the vertex should be moved to.
+            shift: Whether to shift the edge's start or end.
+            aligned_edge: The edge of the vertex that should be aligned with the target position.
+                Defaults to ORIGIN.
+            coor_mask: A 3D vector that determines which coordinates should be changed. Defaults to
+                [1, 1, 1], which means all coordinates are changed.
+        """
+
+        # Determine the target position
+        if isinstance(point_or_mobject, Mobject):
+            target = point_or_mobject.get_critical_point(aligned_edge)
+        else:
+            target = point_or_mobject
+
+        # Determine alignment
+        point_to_align = self.edges[(start, end)].get_critical_point(aligned_edge)
+
+        # Then shift the edges
+        self.shift_edge(start, end, ((target - point_to_align) * coor_mask), shift=shift)
+
     def shift_edge(self, start: Hashable, end: Hashable, *vectors: Vector3D, shift: Literal["start", "end"] = "end"):
         """
         Shifts the start or end of the requested edge.
